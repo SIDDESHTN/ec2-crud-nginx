@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Notes App</title>
+</head>
+<body>
+  <div id="login">
+    <h2>Login</h2>
+    <input id="user" placeholder="Username"><br>
+    <input id="pass" type="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+    <p id="msg"></p>
+  </div>
+
+  <div id="app" style="display:none;">
+    <h2>Your Notes</h2>
+    <ul id="list"></ul>
+    <input id="newNote" placeholder="New note">
+    <button onclick="addNote()">Add</button>
+  </div>
+
+  <script>
+    async function login() {
+      const u = document.getElementById('user').value;
+      const p = document.getElementById('pass').value;
+      const res = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      if (res.ok) {
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadNotes();
+      } else {
+        document.getElementById('msg').innerText = 'Login failed';
+      }
+    }
+
+    async function loadNotes() {
+      const notes = await (await fetch('http://localhost:3000/api/notes')).json();
+      const ul = document.getElementById('list');
+      ul.innerHTML = '';
+      notes.forEach(n => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <input value="${n.text}" onchange="update(${n.id},this.value)">
+          <button onclick="remove(${n.id})">Delete</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    async function addNote() {
+      const text = document.getElementById('newNote').value;
+      await fetch('http://localhost:3000/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      document.getElementById('newNote').value = '';
+      loadNotes();
+    }
+
+    async function update(id, text) {
+      await fetch('http://localhost:3000/api/notes/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      loadNotes();
+    }
+
+    async function remove(id) {
+      await fetch('http://localhost:3000/api/notes/' + id, { method: 'DELETE' });
+      loadNotes();
+    }
+  </script>
+</body>
+</html>
